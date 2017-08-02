@@ -1,0 +1,104 @@
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>ROME GLTF</title>
+		<style>
+			body {
+				margin: 0;
+			}
+		</style>
+	</head>
+	<body>
+		<script src="files/js/three.js"></script>
+		<script src="files/js/GLTF2Loader.js"></script>
+		<script>
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setPixelRatio( window.devicePixelRatio );
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			renderer.animate( render );
+			document.body.appendChild( renderer.domElement );
+
+			var scene = new THREE.Scene();
+			scene.background = new THREE.Color( 0xdddddd );
+
+			var light = new THREE.DirectionalLight( 0xffffff, 1.25 );
+			light.position.set( 1, 1, 1 );
+			scene.add( light );
+
+			var light = new THREE.HemisphereLight();
+			scene.add( light );
+
+			var camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight );
+
+			var mixer, sphere;
+
+			var loader = new THREE.GLTF2Loader();
+			loader.load( location.search.substr( 1 ), function ( gltf ) {
+
+				// TODO Implement Double side in exporter
+
+				gltf.scene.traverse( function ( child ) {
+
+					if ( 'material' in child ) {
+
+						child.material.side = THREE.DoubleSide;
+
+					}
+
+				} );
+
+				sphere = new THREE.Box3()
+					.expandByObject( gltf.scene )
+					.getBoundingSphere();
+
+				//
+
+				var animations = gltf.animations;
+
+				if ( animations && animations.length ) {
+
+					mixer = new THREE.AnimationMixer( gltf.scene );
+
+					for ( var i = 0; i < animations.length; i ++ ) {
+
+						var animation = animations[ i ];
+						mixer.clipAction( animation ).play();
+
+					}
+
+				}
+
+				scene.add( gltf.scene );
+
+			} );
+
+			//
+
+			var prevTime = performance.now() / 1000;
+
+			function render() {
+
+				var time = performance.now() / 1000;
+
+				if ( sphere ) {
+
+					camera.position.set( Math.cos( time ), 1.5, Math.sin( time ) ).multiplyScalar( sphere.radius );
+					camera.lookAt( sphere.center );
+
+				}
+
+				if ( mixer ) {
+
+					mixer.update( time - prevTime );
+
+				}
+
+				renderer.render( scene, camera );
+
+				prevTime = time;
+
+			}
+
+		</script>
+	</body>
+</html>
